@@ -4,7 +4,7 @@ use std::fs::{File};
 use std::collections::BTreeMap;
 use std::ops::{Deref, DerefMut};
 use std::fmt::{Debug, Formatter};
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{BufWriter, Seek, Write};
 
 pub struct Database<S: Storage> {
     storage: S,
@@ -70,9 +70,8 @@ impl Storage for JSONStorage {
     }
 
     fn flush(&mut self) -> Result<(), io::Error> {
-        self.file.seek(SeekFrom::Start(0))?;
-        let content = serde_json::to_vec(&self.data).expect("should be able to serialize");
-        self.file.write_all(&content)?;
+        self.file.rewind()?;
+        serde_json::to_writer(BufWriter::new(&self.file), &self.data).expect("should be able to serialize");
         self.file.flush()
     }
 
